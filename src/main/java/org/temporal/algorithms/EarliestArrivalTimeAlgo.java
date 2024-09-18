@@ -110,7 +110,7 @@ public class EarliestArrivalTimeAlgo {
      */
     public static void compute(int srcVertexId, int timeStep) {
         int size = temporalGraph.getVertices().size();
-        PriorityQueue<TemporalVertex> pq = new PriorityQueue<>(size,
+        PriorityQueue<TemporalVertex> priorityQueue = new PriorityQueue<>(size,
                 Comparator.comparingInt(TemporalVertex::getArrivedAt));
         for (TemporalVertex vertex : temporalGraph.getVertices().values()) vertex.setArrivedAt(Integer.MAX_VALUE);
 
@@ -120,28 +120,50 @@ public class EarliestArrivalTimeAlgo {
             return;
         }
         sourceVertex.setArrivedAt(0);
-        pq.add(sourceVertex);
+        priorityQueue.add(sourceVertex);
 
         Set<Integer> seen = new HashSet<>();
 
-        while (!pq.isEmpty()) {
-            TemporalVertex u = pq.poll();
-            if (seen.contains(u.getId())) continue;
-            seen.add(u.getId());
+        while (!priorityQueue.isEmpty()) {
+            TemporalVertex currentVertex = priorityQueue.poll();
+            if (seen.contains(currentVertex.getId())) continue;
+            seen.add(currentVertex.getId());
 
-            for (Map.Entry<Integer, TemporalEdge> v : temporalGraph.getEdges().get(u.getId()).entrySet()) {
-                int reachingTime = Math.max(u.getArrivedAt(), v.getValue().getStartTime()) + 1;
+            for (Map.Entry<Integer, TemporalEdge> travellingEdge : temporalGraph.getEdges().get(currentVertex.getId()).entrySet()) {
+                int reachingTime = Math.max(currentVertex.getArrivedAt(), travellingEdge.getValue().getStartTime()) + 1;
                 // Update the arrival time of the vertex if the new time is less than the current arrival time of the vertex
                 // and the reaching time is within the time step and the edge is active at the reaching time.
-                if (reachingTime <= timeStep && reachingTime < v.getValue().getEndTime() &&
-                        reachingTime > v.getValue().getStartTime()) {
-                    if (temporalGraph.getVertices().get(v.getKey()).getArrivedAt() > reachingTime) {
-                        temporalGraph.getVertices().get(v.getKey()).setArrivedAt(reachingTime);
-                        pq.add(temporalGraph.getVertices().get(v.getKey()));
-                    }
+                if (canTravelEdge(reachingTime, timeStep, travellingEdge.getValue()) &&
+                        canReachDestinationVertexInMinTime(reachingTime, temporalGraph.getVertices().get(travellingEdge.getKey()))) {
+                    temporalGraph.getVertices().get(travellingEdge.getKey()).setArrivedAt(reachingTime);
+                    priorityQueue.add(temporalGraph.getVertices().get(travellingEdge.getKey()));
                 }
             }
         }
+    }
+
+    /**
+     * Check if the edge can be travelled at a given time step.
+     *
+     * @param reachingTime Time required to travel over edge.
+     * @param timeStep     Time step for which the computation is to be done.
+     * @param adjacentEdge Edge to be travelled.
+     * @return True if the edge can be travelled, false otherwise.
+     */
+    public static boolean canTravelEdge(int reachingTime, int timeStep, TemporalEdge adjacentEdge) {
+        return reachingTime <= timeStep && reachingTime < adjacentEdge.getEndTime() &&
+                reachingTime > adjacentEdge.getStartTime();
+    }
+
+    /**
+     * Check if the destination vertex can be reached at a given time step.
+     *
+     * @param reachingTime Time required to reach the destination vertex.
+     * @param vertex       Destination vertex.
+     * @return True if the destination vertex can be reached, false otherwise.
+     */
+    public static boolean canReachDestinationVertexInMinTime(int reachingTime, TemporalVertex vertex) {
+        return vertex.getArrivedAt() > reachingTime;
     }
 
     /**
