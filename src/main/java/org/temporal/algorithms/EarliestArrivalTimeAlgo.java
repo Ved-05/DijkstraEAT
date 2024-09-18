@@ -131,7 +131,10 @@ public class EarliestArrivalTimeAlgo {
 
             for (Map.Entry<Integer, TemporalEdge> v : temporalGraph.getEdges().get(u.getId()).entrySet()) {
                 int reachingTime = Math.max(u.getArrivedAt(), v.getValue().getStartTime()) + 1;
-                if (reachingTime <= timeStep && reachingTime < v.getValue().getEndTime() && reachingTime > v.getValue().getStartTime()) {
+                // Update the arrival time of the vertex if the new time is less than the current arrival time of the vertex
+                // and the reaching time is within the time step and the edge is active at the reaching time.
+                if (reachingTime <= timeStep && reachingTime < v.getValue().getEndTime() &&
+                        reachingTime > v.getValue().getStartTime()) {
                     if (temporalGraph.getVertices().get(v.getKey()).getArrivedAt() > reachingTime) {
                         temporalGraph.getVertices().get(v.getKey()).setArrivedAt(reachingTime);
                         pq.add(temporalGraph.getVertices().get(v.getKey()));
